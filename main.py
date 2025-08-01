@@ -4,6 +4,7 @@ class Watchlist:
         self._watchlist = []  # initialize to an empty watchlist
 
     def add(self, movieTitle):
+        """Adds a movie to the watchlist"""
         cleanedTitle = movieTitle.strip()
         if cleanedTitle == "":
             print("Movie title cannot be blank.")
@@ -18,6 +19,7 @@ class Watchlist:
         # print(self._watchlist)
 
     def remove(self, movieTitle):
+        """Removes a movie from the watchlist"""
         if len(self._watchlist) == 0:
             print("There are no movies to remove. Your watchlist is empty.")
             return
@@ -32,6 +34,7 @@ class Watchlist:
         return False
 
     def view(self):
+        """Displays the watchlist as a numbered list"""
         if len(self._watchlist) == 0:
             print("Your Watchlist is currently empty.")
         else:
@@ -39,15 +42,18 @@ class Watchlist:
                 print(f"{index}. {item}")
 
     def get_at_index(self, index):
+        """Returns the value at an index in the watchlist"""
         if 0 <= index < len(self._watchlist):
             return self._watchlist[index]
         else:
             print("Invalid index.")
 
     def get_size(self):
+        """Returns the size of the watchlist"""
         return len(self._watchlist)
 
     def contains(self, title):
+        """Returns whether a movie title exists in the watchlist as a boolean, True/False"""
         return any(title.lower() == movie.lower() for movie in self._watchlist)
 
 
@@ -56,16 +62,19 @@ class UI:
         self._watchlist = Watchlist()
 
     def border(self):
+        """Displays a border for text"""
         for i in range(65):
             print("~", end="")
         print("")
 
     def print_header(self, title):
+        """Displays a header for the section"""
         self.border()
         print(f'You selected: {title}')
         self.border()
 
     def return_to_menu(self):
+        """Returns to the main menu selection"""
         while True:
             menuReturn = input("\nReturn to main menu... (Press Enter to continue) ")
             if menuReturn == "":
@@ -74,6 +83,7 @@ class UI:
                 print("Invalid input")
 
     def add_prompt(self):
+        """Prompts the user to add a movie title to the watchlist"""
         while True:
             movieTitleToAdd = str(input("Enter the movie title to add to your watchlist:\n>"))
             if movieTitleToAdd == "":
@@ -92,6 +102,7 @@ class UI:
                 print("Invalid input")
 
     def get_menu_choice(self):
+        """Rerurns the correpsonding menu choice for the main menu"""
         menuChoice = None
         while menuChoice not in [1, 2, 3, 4]:
             try:
@@ -103,6 +114,7 @@ class UI:
         return menuChoice
 
     def confirm_and_delete(self, title):
+        """Prompts the user for removal confirmation and deletes the movie selected if it exists"""
         print(f'Are you sure you want to remove "{title}" from your watchlist?\n'
               "Any associated data will also be removed and cannot be undone.")
         confirmDelete = str(input("Enter 'Y' to confirm deletion\n"))
@@ -115,6 +127,7 @@ class UI:
             print(f'Invalid Input: "{title}" not removed')
 
     def main_menu(self):
+        """Action menu loop"""
         intro = "Welcome to Your Watchlist"
         print(intro.center(65, '~'))
         print("Track your movies so you never forget what to watch next.\nView, add, or remove"
