@@ -15,8 +15,6 @@ class Watchlist:
         else:
             self._watchlist.append(cleanedTitle)
             print(f'"{cleanedTitle}" has been successfully added to your watchlist.')
-        # remove later; test
-        # print(self._watchlist)
 
     def remove(self, movieTitle):
         """Removes a movie from the watchlist"""
