@@ -1,7 +1,27 @@
+from persistence_client import PersistenceClient
+
+
 class Watchlist:
 
     def __init__(self):
-        self._watchlist = []  # initialize to an empty watchlist
+        try:
+            # create connection to persistence microservice
+            self.persistence_client = PersistenceClient()
+
+            # attempt to load existing data
+            watchlist_data = self.persistence_client.load_watchlist()
+
+            if watchlist_data is not None:
+                # if service connection was successful, load data
+                self._watchlist = watchlist_data
+                self.service_available = True
+            else:
+                raise Exception("Service not responding")
+        except:
+            # use memory-only mode if persistence service unavailable
+            self.persistence_client = None
+            self._watchlist = []
+            self.service_available = False
 
     def add(self, movieTitle):
         """Adds a movie to the watchlist"""
@@ -15,6 +35,7 @@ class Watchlist:
         else:
             self._watchlist.append(cleanedTitle)
             print(f'"{cleanedTitle}" has been successfully added to your watchlist.')
+            self._persist()
 
     def remove(self, movieTitle):
         """Removes a movie from the watchlist"""
@@ -26,6 +47,7 @@ class Watchlist:
             if item.lower() == movieTitle.lower():
                 self._watchlist.remove(item)
                 print(f'"{item}" was succefully removed from your watchlist.')
+                self._persist()
                 return True
 
         print(f'"{movieTitle}" not found in your watchlist.')
@@ -54,6 +76,16 @@ class Watchlist:
         """Returns whether a movie title exists in the watchlist as a boolean, True/False"""
         return any(title.lower() == movie.lower() for movie in self._watchlist)
 
+    def _persist(self):
+        """
+        Saves the current watchlist to the persistence service if available.
+        If unavailable, displayes a message indicating that it is only saving in the current session.
+        """
+        if self.service_available:
+            success = self.persistence_client.save_watchlist(self._watchlist)
+            if not success:
+                print("Note: Not connected to persistence service. Your changes were saved only within this session.\n")
+
 
 class UI:
     def __init__(self):
@@ -80,7 +112,7 @@ class UI:
                   "2. Confirm the title has been added.\n"
                   "3. Choose to add another movie or return to the main menu selection.")
         elif actionName == "removeByNum":
-            print("You have chosen to remove a movie by list numner.\n"
+            print("You have chosen to remove a movie by list number.\n"
                   "Steps:\n"
                   "1. View your watchlist\n"
                   "2. Enter the corresponding number of the movie title to remove\n"
@@ -94,7 +126,7 @@ class UI:
                   "3. Confirm deletion\n"
                   "4. Choose to remove another movie or return to the main menu selection.")
         self.border()
-        input("Press any key to continue...\n")
+        input("Press Enter to continue...\n")
 
     def return_to_menu(self):
         """Returns to the main menu selection"""
@@ -128,7 +160,7 @@ class UI:
                 print("Invalid input")
 
     def get_menu_choice(self):
-        """Rerurns the correpsonding menu choice for the main menu"""
+        """Returns the correpsonding menu choice for the main menu"""
         menuChoice = None
         while menuChoice not in [1, 2, 3, 4]:
             try:
@@ -154,8 +186,15 @@ class UI:
 
     def main_menu(self):
         """Action menu loop"""
+        # status indicator showing persistence service avaiability
+        if self._watchlist.service_available:
+            print("[Saving: ON]")
+        else:
+            print("[Memory Mode]")
+
         intro = "Welcome to Your Watchlist"
         print(intro.center(65, '~'))
+
         print("Track your movies so you never forget what to watch next.\nView, add, or remove"
               " movies with just a few simple commands.\n")
 
@@ -227,7 +266,7 @@ class UI:
                                 else:
                                     print("Invalid input: No movie with that number exists.")
                             except ValueError:
-                                print("Invalid Input: Please enter a valid numer or hit Enter to cancel.")
+                                print("Invalid Input: Please enter a valid number or hit Enter to cancel.")
 
                         self.confirm_and_delete(movieToRemove)
 
@@ -289,8 +328,13 @@ class UI:
 
 
 def main():
-    ui = UI()
-    ui.main_menu()
+    try:
+        ui = UI()
+        ui.main_menu()
+    except KeyboardInterrupt:
+        print("Exiting")
+    except Exception as e:
+        print(f"Error: {e}")
 
 
 if __name__ == "__main__":
