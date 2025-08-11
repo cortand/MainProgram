@@ -23,34 +23,34 @@ class Watchlist:
             self._watchlist = []
             self.service_available = False
 
-    def add(self, movieTitle):
+    def add(self, movie_title):
         """Adds a movie to the watchlist"""
-        cleanedTitle = movieTitle.strip()
-        if cleanedTitle == "":
+        cleanted_title = movie_title.strip()
+        if cleanted_title == "":
             print("Movie title cannot be blank.")
             return
-        cleanedTitle = cleanedTitle.title()
-        if cleanedTitle.lower() in [m.lower() for m in self._watchlist]:
-            print(f"{cleanedTitle} is already in your watchlist.")
+        cleanted_title = cleanted_title.title()
+        if cleanted_title.lower() in [m.lower() for m in self._watchlist]:
+            print(f"{cleanted_title} is already in your watchlist.")
         else:
-            self._watchlist.append(cleanedTitle)
-            print(f'"{cleanedTitle}" has been successfully added to your watchlist.')
+            self._watchlist.append(cleanted_title)
+            print(f'"{cleanted_title}" has been successfully added to your watchlist.')
             self._persist()
 
-    def remove(self, movieTitle):
+    def remove(self, movie_title):
         """Removes a movie from the watchlist"""
         if len(self._watchlist) == 0:
             print("There are no movies to remove. Your watchlist is empty.")
             return
 
         for item in self._watchlist:
-            if item.lower() == movieTitle.lower():
+            if item.lower() == movie_title.lower():
                 self._watchlist.remove(item)
                 print(f'"{item}" was succefully removed from your watchlist.')
                 self._persist()
                 return True
 
-        print(f'"{movieTitle}" not found in your watchlist.')
+        print(f'"{movie_title}" not found in your watchlist.')
         return False
 
     def view(self):
@@ -103,22 +103,22 @@ class UI:
         print(f'You selected: {title}')
         self.border()
 
-    def display_steps(self, actionName):
+    def display_steps(self, action_name):
         """Shows step-by-step instructions for add and delete actions before starting the first step."""
-        if actionName == "add":
+        if action_name == "add":
             print("You have chosen to add a movie to your watchlist.\n"
                   "Steps:\n"
                   "1. Enter the movie title\n"
                   "2. Confirm the title has been added.\n"
                   "3. Choose to add another movie or return to the main menu selection.")
-        elif actionName == "removeByNum":
+        elif action_name == "remove_by_num":
             print("You have chosen to remove a movie by list number.\n"
                   "Steps:\n"
                   "1. View your watchlist\n"
                   "2. Enter the corresponding number of the movie title to remove\n"
                   "3. Confirm deletion\n"
                   "4. Choose to remove another movie or return to the main menu selection.")
-        elif actionName == "removeByTitle":
+        elif action_name == "remove_by_title":
             print("You have chosen to remove a movie by title.\n"
                   "Steps:\n"
                   "1. View your watchlist\n"
@@ -131,29 +131,29 @@ class UI:
     def return_to_menu(self):
         """Returns to the main menu selection"""
         while True:
-            menuReturn = input("\nReturn to main menu... (Press Enter to continue) ")
-            if menuReturn == "":
+            menu_return = input("\nReturn to main menu... (Press Enter to continue) ")
+            if menu_return == "":
                 return self.main_menu()
             else:
                 print("Invalid input")
 
-    def add_prompt(self, showInstructions=True):
+    def add_prompt(self, show_instructions=True):
         """Prompts the user to add a movie title to the watchlist"""
-        if showInstructions:
+        if show_instructions:
             self.display_steps("add")
 
         while True:
-            movieTitleToAdd = str(input("Enter the movie title to add to your watchlist:\n>"))
-            if movieTitleToAdd == "":
+            movie_title_to_add = str(input("Enter the movie title to add to your watchlist:\n>"))
+            if movie_title_to_add == "":
                 print("Invalid Input: Movie title cannot be blank. Please enter a valid title.")
             else:
-                self._watchlist.add(movieTitleToAdd)
+                self._watchlist.add(movie_title_to_add)
                 break
 
         while True:
             addAgain = input("Press 1 to add another movie, or hit Enter to return to main menu...\n")
             if addAgain == '1':
-                return self.add_prompt(showInstructions=False)
+                return self.add_prompt(show_instructions=False)
             elif addAgain == "":
                 return self.main_menu()
             else:
@@ -161,22 +161,22 @@ class UI:
 
     def get_menu_choice(self):
         """Returns the correpsonding menu choice for the main menu"""
-        menuChoice = None
-        while menuChoice not in [1, 2, 3, 4]:
+        menu_choice = None
+        while menu_choice not in [1, 2, 3, 4]:
             try:
-                menuChoice = int(input())
-                if menuChoice not in [1, 2, 3, 4]:
+                menu_choice = int(input())
+                if menu_choice not in [1, 2, 3, 4]:
                     print("Invalid input: Please enter a number 1-4.")
             except ValueError:
                 print("Invalid input: Please enter a number 1-4.")
-        return menuChoice
+        return menu_choice
 
     def confirm_and_delete(self, title):
         """Prompts the user for removal confirmation and deletes the movie selected if it exists"""
         print(f'Are you sure you want to remove "{title}" from your watchlist?\n'
               "Any associated data will also be removed and cannot be undone.")
-        confirmDelete = str(input("Enter 'Y' to confirm deletion\n"))
-        if confirmDelete.strip().upper() == "Y":
+        confirm_delete = str(input("Enter 'Y' to confirm deletion\n"))
+        if confirm_delete.strip().upper() == "Y":
             self._watchlist.remove(title)
             if self._watchlist.get_size() == 0:
                 print("Your watchlist is now empty.")
@@ -205,18 +205,18 @@ class UI:
               "\n4. Exit"
               "\nEnter your choice (1-4):")
 
-        menuChoice = self.get_menu_choice()
+        menu_choice = self.get_menu_choice()
 
-        if menuChoice == 1:
+        if menu_choice == 1:
             self.print_header('View Watchlist')
             self._watchlist.view()
             self.return_to_menu()
 
-        elif menuChoice == 2:
+        elif menu_choice == 2:
             self.print_header('Add Movie')
-            self.add_prompt(showInstructions=True)
+            self.add_prompt(show_instructions=True)
 
-        elif menuChoice == 3:
+        elif menu_choice == 3:
             self.print_header('Remove Movie')
             print("Your Watchlist:")
             self._watchlist.view()
@@ -228,17 +228,17 @@ class UI:
                   "\n"
                   "Enter your choice (1-3):")
 
-            removeChoice = None
-            while removeChoice not in [1, 2, 3]:
+            remove_choice = None
+            while remove_choice not in [1, 2, 3]:
                 try:
-                    removeChoice = int(input())
-                    if removeChoice not in [1, 2, 3]:
+                    remove_choice = int(input())
+                    if remove_choice not in [1, 2, 3]:
                         print("Invalid input: Please choose from options 1-3.")
                 except ValueError:
                     print("Invalid input: Please enter a valid number.")
 
-                if removeChoice == 1:
-                    showInstructions = True
+                if remove_choice == 1:
+                    show_instructions = True
                     while True:
                         if self._watchlist.get_size() == 0:
                             print("There are no movies to remove. Your watchlist is empty.")
@@ -246,81 +246,81 @@ class UI:
 
                         self.print_header('Remove Movie by List Number')
 
-                        if showInstructions:
-                            self.display_steps("removeByNum")
-                            showInstructions = False
+                        if show_instructions:
+                            self.display_steps("remove_by_num")
+                            show_instructions = False
 
                         print("Your Watchlist:")
                         self._watchlist.view()
 
-                        movieToRemove = None
-                        while movieToRemove is None:
-                            removeInput = input("\nEnter the corresponding number of the movie to remove"
+                        movie_to_remove = None
+                        while movie_to_remove is None:
+                            remove_input = input("\nEnter the corresponding number of the movie to remove"
                                                 " (or hit Enter to cancel):\n>")
-                            if removeInput.strip() == "":
+                            if remove_input.strip() == "":
                                 return self.return_to_menu()
                             try:
-                                removeNum = int(removeInput)
-                                if 0 < removeNum <= self._watchlist.get_size():
-                                    movieToRemove = self._watchlist.get_at_index(removeNum - 1)
+                                remove_num = int(remove_input)
+                                if 0 < remove_num <= self._watchlist.get_size():
+                                    movie_to_remove = self._watchlist.get_at_index(remove_num - 1)
                                 else:
                                     print("Invalid input: No movie with that number exists.")
                             except ValueError:
                                 print("Invalid Input: Please enter a valid number or hit Enter to cancel.")
 
-                        self.confirm_and_delete(movieToRemove)
+                        self.confirm_and_delete(movie_to_remove)
 
                         while True:
-                            removeMore = input("Would you like to remove a movie? Press 1 to remove, or hit "
+                            remove_more = input("Would you like to remove a movie? Press 1 to remove, or hit "
                                                "Enter to return to Main Menu\n")
-                            if removeMore == "1":
+                            if remove_more == "1":
                                 break
-                            elif removeMore == "":
+                            elif remove_more == "":
                                 return self.return_to_menu()
                             else:
                                 print(f'Invalid input: Press 1 to remove another movie or Enter to return to '
                                       f'Main Menu')
 
-                if removeChoice == 2:
-                    showInstructions = True
+                if remove_choice == 2:
+                    show_instructions = True
                     while True:
                         if self._watchlist.get_size() == 0:
                             print("There are no movies to remove. Your watchlist is empty.")
                             return self.return_to_menu()
 
                         self.print_header('Remove Movie by Title')
-                        if showInstructions:
-                            self.display_steps("removeByTitle")
-                            showInstructions = False
+                        if show_instructions:
+                            self.display_steps("remove_by_title")
+                            show_instructions = False
 
                         print("Your Watchlist:")
                         self._watchlist.view()
 
-                        removeTitle = input("\nEnter the full title of the movie to remove"
+                        remove_title = input("\nEnter the full title of the movie to remove"
                                             " (or hit Enter to cancel):\n").strip().title()
-                        if removeTitle.strip() == "":
+                        if remove_title.strip() == "":
                             return self.return_to_menu()
 
-                        if not self._watchlist.contains(removeTitle):
-                            print(f'No movie titled "{removeTitle}" was found in your watchlist.')
+                        if not self._watchlist.contains(remove_title):
+                            print(f'No movie titled "{remove_title}" was found in your watchlist.')
                             continue
 
-                        self.confirm_and_delete(removeTitle)
+                        self.confirm_and_delete(remove_title)
 
                         while True:
-                            removeMore = input("Would you like to remove a movie? Press 1 to remove, or hit "
+                            remove_more = input("Would you like to remove a movie? Press 1 to remove, or hit "
                                                "Enter to return to Main Menu\n")
-                            if removeMore == "1":
+                            if remove_more == "1":
                                 break
-                            elif removeMore == "":
+                            elif remove_more == "":
                                 return self.return_to_menu()
                             else:
                                 print(f'Invalid input: Press 1 to remove another movie or Enter to return to Main Menu')
 
-                if removeChoice == 3:
+                if remove_choice == 3:
                     self.main_menu()
 
-        elif menuChoice == 4:
+        elif menu_choice == 4:
             exit()
 
         else:
