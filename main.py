@@ -1,4 +1,5 @@
 from persistence_client import PersistenceClient
+from watched_status_client import WatchedStatusClient
 
 
 class Watchlist:
@@ -14,14 +15,23 @@ class Watchlist:
             if watchlist_data is not None:
                 # if service connection was successful, load data
                 self._watchlist = watchlist_data
-                self.service_available = True
+                self.persistence_service_available = True
             else:
                 raise Exception("Service not responding")
         except:
             # use memory-only mode if persistence service unavailable
             self.persistence_client = None
             self._watchlist = []
-            self.service_available = False
+            self.persistence_service_available = False
+
+        try:
+            # create connection to watched status microservice
+            self.watched_status_client = WatchedStatusClient()
+            test_result = self.watched_status_client.get_all_movies()
+            self.watch_service_available = test_result is not None
+        except:
+            self.watched_status_client = None
+            self.watch_service_available = False
 
     def add(self, movie_title):
         """Adds a movie to the watchlist"""
@@ -81,10 +91,32 @@ class Watchlist:
         Saves the current watchlist to the persistence service if available.
         If unavailable, displayes a message indicating that it is only saving in the current session.
         """
-        if self.service_available:
+        if self.persistence_service_available:
             success = self.persistence_client.save_watchlist(self._watchlist)
             if not success:
                 print("Note: Not connected to persistence service. Your changes were saved only within this session.\n")
+
+    def mark_as_watched(self, title, rating=None):
+        """Mark a movie as watched with optional rating"""
+        if self.watch_service_available:
+            return self.watched_status_client.mark_watched(title, rating)
+        return False
+
+    def get_unwatched_movies(self):
+        """Get a list of unwatched movies from the current watchlist"""
+        if not self.watch_service_available:
+            return []
+
+        return self.watched_status_client.get_unwatched_from_list(self._watchlist)
+
+    def get_watched_movies(self):
+        """Get a list of watched movies from the curernt watchlist"""
+        if not self.watch_service_available:
+            return []
+
+        return self.watched_status_client.get_watched_from_list(self._watchlist)
+
+
 
 
 class UI:
@@ -137,6 +169,15 @@ class UI:
             else:
                 print("Invalid input")
 
+    def return_to_view_menu(self):
+        """Returns to the view menu selection"""
+        while True:
+            menu_return = input("\nReturn to view menu...(Press Enter to continue) ")
+            if menu_return == "":
+                return self.view_watchlist_menu()
+            else:
+                print("Invalid input.")
+
     def add_prompt(self, show_instructions=True):
         """Prompts the user to add a movie title to the watchlist"""
         if show_instructions:
@@ -159,17 +200,163 @@ class UI:
             else:
                 print("Invalid input")
 
-    def get_menu_choice(self):
+    def get_main_menu_choice(self):
         """Returns the correpsonding menu choice for the main menu"""
-        menu_choice = None
-        while menu_choice not in [1, 2, 3, 4]:
+        main_menu_choice = None
+        while main_menu_choice not in [1, 2, 3, 4]:
             try:
-                menu_choice = int(input())
-                if menu_choice not in [1, 2, 3, 4]:
+                main_menu_choice = int(input())
+                if main_menu_choice not in [1, 2, 3, 4]:
                     print("Invalid input: Please enter a number 1-4.")
             except ValueError:
                 print("Invalid input: Please enter a number 1-4.")
-        return menu_choice
+        return main_menu_choice
+
+    def get_view_menu_choice(self):
+        """Returns the correpsonding menu choice for the view menu"""
+        view_menu_choice = None
+        while view_menu_choice not in [1, 2, 3, 4, 5]:
+            try:
+                view_menu_choice = int(input())
+                if view_menu_choice not in [1, 2, 3, 4, 5]:
+                    print("Invalid input: Please enter a number 1-5.")
+            except ValueError:
+                print("Invalid input: Please enter a number 1-5.")
+        return view_menu_choice
+
+    def view_watchlist_menu(self):
+        """Displays view menu with filtering and watch status options."""
+        self.print_header('View Watchlist')
+
+        print("How would you like to view your watchlist?\n"
+              "1. View All Movies\n"
+              "2. View Unwatched Only\n"
+              "3. View Watched Only\n"
+              "4. Mark Movie as Watched\n"
+              "5. Return to Main Menu\n"
+              "\n"
+              "Enter your choice (1-5):")
+
+        view_choice = self.get_view_menu_choice()
+
+        if view_choice == 1:
+            self.print_header('View All Movies')
+            # show basic numbered watchlist
+            self._watchlist.view()
+            self.return_to_view_menu()
+
+        elif view_choice == 2:
+            self.print_header('View Unwatched Movies Only')
+            # show only unwatched movies
+            self.display_unwatched()
+
+        elif view_choice == 3:
+            self.print_header('View Watched Movies Only')
+            # show only watched movies
+            self.display_watched()
+
+        elif view_choice == 4:
+            self.print_header('Mark Movie as Watched')
+            self.mark_as_watched_prompt()
+
+        elif view_choice == 5:
+            return self.main_menu()
+
+    def mark_as_watched_prompt(self):
+        """Prompts the user to mark a movie as watched."""
+        self.print_header('Mark Movie as Watched')
+
+        # check service availability
+        if not self._watchlist.watch_service_available:
+            print("Watch status service unavailable. Cannot mark movies as watched.")
+            input("Press Enter to continue...")
+            return self.view_watchlist_menu()
+
+        # show watchlist
+        print("Your Watchlist:")
+        self._watchlist.view()
+
+        if self._watchlist.get_size() == 0:
+            print("Your watchlist is empty. Go to main menu to add movies.")
+            input("Press Enter to continue...")
+            return self.main_menu()
+
+        # get movie title
+        movie_title = input("\n Enter the title of the movie to mark as watched (or hit Enter to cancel):"
+                            "\n").strip().title()
+        if movie_title == "":
+            return self.view_watchlist_menu()
+
+        # check if movie is in watchlist
+        if not self._watchlist.contains(movie_title):
+            print(f'"{movie_title}" is not in your watchlist.')
+            input("Press Enter to continue...")
+            return self.mark_as_watched_prompt()
+
+        # get optional rating
+        rating = None
+        while True:
+            rating_input = input("Enter a rating 1-10 (or hit Enter to skip):\n").strip()
+            if rating_input == "":
+                break
+            try:
+                rating = int(rating_input)
+                if 1 <= rating <= 10:
+                    break
+                else:
+                    print("Rating must be between 1-10.")
+            except ValueError:
+                print("Please enter a valid number or hit Enter to skip.")
+
+        # mark as watched
+        success = self._watchlist.mark_as_watched(movie_title, rating)
+        if success:
+            if rating:
+                print(f'"{movie_title}" marked as watched with rating {rating}/10!')
+            else:
+                print(f'"{movie_title}" marked as watched!')
+        else:
+            print("Something went wrong. Failed to mark movie as watched.")
+
+        # prompt to mark another
+        while True:
+            mark_another = input("Press 2 to mark another movie as watched, or hit Enter to return to view menu...\n")
+            if mark_another == "1":
+                return self.mark_as_watched_prompt()
+            elif mark_another == "":
+                return self.view_watchlist_menu()
+            else:
+                print("Invalid input")
+    def display_unwatched(self):
+        """Display only unwatched movies as a numbered list"""
+        if not self._watchlist.watch_service_available:
+            print("Watch status service unavailable. Cannot show unwatched movies.")
+            return self.return_to_view_menu()
+
+        unwatched = self._watchlist.get_unwatched_movies()
+        if len(unwatched) == 0:
+            print("All movies in your watchlist have been watched!")
+        else:
+            print("Unwatched Movies:")
+            for index, item in enumerate(unwatched, start=1):
+                print(f"{index}. {item}")
+        return self.return_to_view_menu()
+
+    def display_watched(self):
+        """Display only watched movies as a numbered list"""
+        if not self._watchlist.watch_service_available:
+            print("Watch status service unavailable. Cannot show watched movies.")
+            return self.return_to_view_menu()
+
+        watched = self._watchlist.get_watched_movies()
+        if len(watched) == 0:
+            print("You have not seen any movies on your watchlist.")
+        else:
+            print("Watched Movies:")
+            for index, item in enumerate(watched, start=1):
+                print(f"{index}. {item}")
+
+        return self.return_to_view_menu()
 
     def confirm_and_delete(self, title):
         """Prompts the user for removal confirmation and deletes the movie selected if it exists"""
@@ -187,7 +374,7 @@ class UI:
     def main_menu(self):
         """Action menu loop"""
         # status indicator showing persistence service avaiability
-        if self._watchlist.service_available:
+        if self._watchlist.persistence_service_available:
             print("[Saving: ON]")
         else:
             print("[Memory Mode]")
@@ -205,18 +392,16 @@ class UI:
               "\n4. Exit"
               "\nEnter your choice (1-4):")
 
-        menu_choice = self.get_menu_choice()
+        main_menu_choice = self.get_main_menu_choice()
 
-        if menu_choice == 1:
-            self.print_header('View Watchlist')
-            self._watchlist.view()
-            self.return_to_menu()
+        if main_menu_choice == 1:
+            self.view_watchlist_menu()
 
-        elif menu_choice == 2:
+        elif main_menu_choice == 2:
             self.print_header('Add Movie')
             self.add_prompt(show_instructions=True)
 
-        elif menu_choice == 3:
+        elif main_menu_choice == 3:
             self.print_header('Remove Movie')
             print("Your Watchlist:")
             self._watchlist.view()
@@ -256,7 +441,7 @@ class UI:
                         movie_to_remove = None
                         while movie_to_remove is None:
                             remove_input = input("\nEnter the corresponding number of the movie to remove"
-                                                " (or hit Enter to cancel):\n>")
+                                                 " (or hit Enter to cancel):\n>")
                             if remove_input.strip() == "":
                                 return self.return_to_menu()
                             try:
@@ -272,7 +457,7 @@ class UI:
 
                         while True:
                             remove_more = input("Would you like to remove a movie? Press 1 to remove, or hit "
-                                               "Enter to return to Main Menu\n")
+                                                "Enter to return to Main Menu\n")
                             if remove_more == "1":
                                 break
                             elif remove_more == "":
@@ -297,7 +482,7 @@ class UI:
                         self._watchlist.view()
 
                         remove_title = input("\nEnter the full title of the movie to remove"
-                                            " (or hit Enter to cancel):\n").strip().title()
+                                             " (or hit Enter to cancel):\n").strip().title()
                         if remove_title.strip() == "":
                             return self.return_to_menu()
 
@@ -309,7 +494,7 @@ class UI:
 
                         while True:
                             remove_more = input("Would you like to remove a movie? Press 1 to remove, or hit "
-                                               "Enter to return to Main Menu\n")
+                                                "Enter to return to Main Menu\n")
                             if remove_more == "1":
                                 break
                             elif remove_more == "":
@@ -320,7 +505,7 @@ class UI:
                 if remove_choice == 3:
                     self.main_menu()
 
-        elif menu_choice == 4:
+        elif main_menu_choice == 4:
             exit()
 
         else:
